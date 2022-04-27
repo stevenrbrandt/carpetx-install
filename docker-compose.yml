@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+
+  etworkshop-workspace:
+    build:
+        context: .
+        dockerfile: Dockerfile
+    image: stevenrbrandt/etworkshop
+    container_name: etworkshop
+    entrypoint: sleep infinity
+    hostname: workshop
