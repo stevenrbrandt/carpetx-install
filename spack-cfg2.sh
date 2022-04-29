@@ -14,7 +14,7 @@ echo
 mkdir -p $HERE
 if [ ! -d "$SPACK_ROOT" ]
 then
-  git clone --depth 1 https://github.com/spack/spack.git "$SPACK_ROOT"
+  git clone -b v0.17.2 --depth 1 https://github.com/spack/spack.git "$SPACK_ROOT"
 fi
 source "$SPACK_ROOT/share/spack/setup-env.sh"
 
@@ -85,25 +85,47 @@ then
 fi
 
 set +e
+
+# Make sure we have a compiler
 spack find gcc@${GCC_VER}
 if [ $? = 0 ]
+then
+    GCC_FOUND=2
+else
+    spack compiler find
+    grep gcc@${GCC_VER} $HERE/.spack/linux/compilers.yaml
+    if [ $? = 0 ]
+    then
+        GCC_FOUND=1
+    else
+        GCC_FOUND=0
+    fi
+fi
+
+# Make sure we have a few externals
+spack external find perl diffutils findutils
+
+# Make sure we have the exact compiler we want
+if [ $GCC_FOUND != 0 ]
 then
   echo gcc@${GCC_VER} was found
   set -e
 else
   echo gcc@${GCC_VER} was NOT found
   set -e
-  spack external find perl diffutils findutils
-  spack install gcc@${GCC_VER}
+  spack install --reuse gcc@${GCC_VER}
   spack load gcc@${GCC_VER}
   spack compiler find
 fi
 
-spack load gcc@${GCC_VER}
+if [ $GCC_FOUND = 2 ]
+then
+    spack load gcc@${GCC_VER}
+fi
 which gfortran
 which gcc
 which g++
-for pkg in mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 amrex boost cuda googletest gperftools likwid memkind nsimd openblas openpmd-api petsc rnpletal simulationio ssht yaml-cpp gdb
+for pkg in mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 amrex boost cuda googletest gperftools memkind nsimd openblas openpmd-api rnpletal simulationio ssht yaml-cpp gdb
 do
     if grep $pkg "$ENV_DIR/spack.yaml"
     then
@@ -121,7 +143,8 @@ fi
 spack --env-dir="$ENV_DIR" install --reuse < /dev/null
 set +e
 rm -fr carpetx
-spack view symlink -i carpetx mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 amrex boost cuda googletest gperftools likwid memkind nsimd openblas openpmd-api petsc rnpletal simulationio ssht yaml-cpp gdb 
+spack view symlink -i carpetx mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 boost cuda googletest gperftools memkind nsimd openblas openpmd-api rnpletal simulationio ssht yaml-cpp gdb 
+echo Create local-gpu.cfg
 cat > template.cfg << EOF
 # Option list for the Einstein Toolkit
 
@@ -183,7 +206,7 @@ DISABLE_REAL16 = yes
 VECTORISE = no
 
 ADIOS2_DIR = {VIEW_DIR}
-AMREX_DIR = {VIEW_DIR}
+AMREX_DIR = {AMREX_DIR}
 ASDF_CXX_DIR = {VIEW_DIR}
 BOOST_DIR = {VIEW_DIR}
 FFTW3_DIR = {VIEW_DIR}
@@ -198,7 +221,6 @@ HDF5_ENABLE_CXX = yes
 HPX_DIR = {VIEW_DIR}
 HWLOC_DIR = {VIEW_DIR}
 JEMALLOC_DIR = {VIEW_DIR}
-KADATH_DIR = {VIEW_DIR}
 LORENE_DIR = {VIEW_DIR}
 MPI_DIR = {VIEW_DIR}
 MPI_INC_DIRS = {VIEW_DIR}/include
@@ -213,8 +235,8 @@ OPENBLAS_DIR = {VIEW_DIR}
 OPENPMD_API_DIR = {VIEW_DIR}
 OPENPMD_DIR = {VIEW_DIR}
 OPENSSL_DIR = {VIEW_DIR}
-PETSC_DIR = {VIEW_DIR}
-PETSC_ARCH_LIBS = m
+#PETSC_DIR = {VIEW_DIR}
+#PETSC_ARCH_LIBS = m
 PTHREADS_DIR = NO_BUILD
 #REPRIMAND_DIR = {VIEW_DIR}
 #REPRIMAND_LIBS = RePrimAnd
@@ -225,11 +247,128 @@ SSHT_DIR = {VIEW_DIR}
 YAML_CPP_DIR = {VIEW_DIR}
 ZLIB_DIR = {VIEW_DIR}
 EOF
-cp template.cfg local.cfg
+cp template.cfg local-gpu.cfg
 export GCC_DIR=$(spack find --path gcc|tail -1|awk '{print $2}')
 export NSIMD_DIR=$(spack find --path nsimd|tail -1|awk '{print $2}')
 export NSIMD_ARCH=$(ls $NSIMD_DIR/lib/libnsimd_*.so | perl -p -e 's/.*libnsimd_//'|perl -p -e 's/\.so//')
 export VIEW_DIR="$PWD/carpetx"
-perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local.cfg
-perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local.cfg
-perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local.cfg
+export AMREX_DIR=$(spack find --path amrex+cuda|tail -1|awk '{print $2}')
+perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local-gpu.cfg
+perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local-gpu.cfg
+perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local-gpu.cfg
+perl -p -i -e "s'{AMREX_DIR}'$AMREX_DIR'g" local-gpu.cfg
+
+spack find amrex~cuda
+if [ $? != 0 ]
+then
+  spack install --reuse amrex ~cuda +hdf5 +openmp +particles +shared
+fi
+echo Create local-cpu.cfg
+cat > template2.cfg << EOF
+# Option list for the Einstein Toolkit
+
+# The "weird" options here should probably be made the default in the
+# ET instead of being set here.
+
+# Whenever this version string changes, the application is configured
+# and rebuilt from scratch
+VERSION = db-gpu-2021-11-17
+
+CPP = {GCC_DIR}/bin/cpp
+FPP = {GCC_DIR}/bin/cpp
+CC = {GCC_DIR}/bin/gcc
+CXX = {GCC_DIR}/bin/g++
+FC = {GCC_DIR}/bin/gfortran
+F90 = {GCC_DIR}/bin/gfortran
+LD = {GCC_DIR}/bin/g++
+
+CPPFLAGS = -DSIMD_CPU
+CFLAGS = -pipe -g -march=native 
+# - We use "--relocatable-device-code=true" to allow building with
+#   debug versions of AMReX
+#   <https://github.com/AMReX-Codes/amrex/issues/1829>
+# - We use "--objdir-as-tempdir" to prevent errors such as
+#   Call parameter type does not match function signature!
+#     %tmp = load double, double* %x.addr, align 8, !dbg !1483
+#     float  %1 = call i32 @__isnanf(double %tmp), !dbg !1483
+CXXFLAGS = -g -std=c++17 
+FPPFLAGS = -traditional
+F90FLAGS = -pipe -g -march=native -fcray-pointer -ffixed-line-length-none
+LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib
+LIBS = 
+
+C_LINE_DIRECTIVES = yes
+F_LINE_DIRECTIVES = yes
+
+DEBUG = no
+CPP_DEBUG_FLAGS = -DCARPET_DEBUG
+C_DEBUG_FLAGS = -fbounds-check -fsanitize=undefined -fstack-protector-all -ftrapv
+CXX_DEBUG_FLAGS = -fbounds-check -fsanitize=undefined -fstack-protector-all -ftrapv -lineinfo
+FPP_DEBUG_FLAGS = -DCARPET_DEBUG
+F90_DEBUG_FLAGS = -fcheck=bounds,do,mem,pointer,recursion -finit-character=65 -finit-integer=42424242 -finit-real=nan -fsanitize=undefined -fstack-protector-all -ftrapv
+
+OPTIMISE = yes
+C_OPTIMISE_FLAGS = -O3 -fcx-limited-range -fexcess-precision=fast -fno-math-errno -fno-rounding-math -fno-signaling-nans -funsafe-math-optimizations
+CXX_OPTIMISE_FLAGS = -O3 -fcx-limited-range -fexcess-precision=fast -fno-math-errno -fno-rounding-math -fno-signaling-nans -funsafe-math-optimizations
+F90_OPTIMISE_FLAGS = -O3 -fcx-limited-range -fexcess-precision=fast -fno-math-errno -fno-rounding-math -fno-signaling-nans -funsafe-math-optimizations
+
+OPENMP = yes
+CPP_OPENMP_FLAGS = -fopenmp
+FPP_OPENMP_FLAGS = -D_OPENMP
+
+WARN = yes
+
+# {GCC_DIR} does not support these
+DISABLE_INT16 = yes
+DISABLE_REAL16 = yes
+
+VECTORISE = no
+
+ADIOS2_DIR = {VIEW_DIR}
+AMREX_DIR = {AMREX_DIR}
+ASDF_CXX_DIR = {VIEW_DIR}
+BOOST_DIR = {VIEW_DIR}
+FFTW3_DIR = {VIEW_DIR}
+GSL_DIR = {VIEW_DIR}
+HDF5_DIR = {VIEW_DIR}
+HDF5_ENABLE_CXX = yes
+HDF5_ENABLE_FORTRAN = yes
+HDF5_INC_DIRS = {VIEW_DIR}/include
+HDF5_LIB_DIRS = {VIEW_DIR}/lib
+HDF5_LIBS = hdf5_hl_cpp hdf5_cpp hdf5_hl_f90cstub hdf5_f90cstub hdf5_hl_fortran hdf5_fortran hdf5_hl hdf5
+HDF5_ENABLE_CXX = yes
+HPX_DIR = {VIEW_DIR}
+HWLOC_DIR = {VIEW_DIR}
+JEMALLOC_DIR = {VIEW_DIR}
+LORENE_DIR = {VIEW_DIR}
+MPI_DIR = {VIEW_DIR}
+MPI_INC_DIRS = {VIEW_DIR}/include
+MPI_LIB_DIRS = {VIEW_DIR}/lib
+MPI_LIBS = mpi
+NSIMD_DIR = {VIEW_DIR}
+NSIMD_INC_DIRS = {VIEW_DIR}/include
+NSIMD_LIB_DIRS = {VIEW_DIR}/lib
+NSIMD_ARCH = {NSIMD_ARCH}
+NSIMD_SIMD = {NSIMD_ARCH}
+OPENBLAS_DIR = {VIEW_DIR}
+OPENPMD_API_DIR = {VIEW_DIR}
+OPENPMD_DIR = {VIEW_DIR}
+OPENSSL_DIR = {VIEW_DIR}
+#PETSC_DIR = {VIEW_DIR}
+#PETSC_ARCH_LIBS = m
+PTHREADS_DIR = NO_BUILD
+#REPRIMAND_DIR = {VIEW_DIR}
+#REPRIMAND_LIBS = RePrimAnd
+RNPLETAL_DIR = {VIEW_DIR}
+SILO_DIR = {VIEW_DIR}
+SIMULATIONIO_DIR = {VIEW_DIR}
+SSHT_DIR = {VIEW_DIR}
+YAML_CPP_DIR = {VIEW_DIR}
+ZLIB_DIR = {VIEW_DIR}
+EOF
+cp template2.cfg local-cpu.cfg
+export AMREX_DIR=$(spack find --path amrex~cuda|tail -1|awk '{print $2}')
+perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local-cpu.cfg
+perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local-cpu.cfg
+perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local-cpu.cfg
+perl -p -i -e "s'{AMREX_DIR}'$AMREX_DIR'g" local-cpu.cfg

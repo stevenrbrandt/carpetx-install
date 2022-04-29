@@ -4,6 +4,8 @@ services:
 
   etworkshop-workspace:
     build:
+        args:
+            GH_TOKEN: ${GH_TOKEN}
         context: .
         dockerfile: Dockerfile
     image: stevenrbrandt/etworkshop
