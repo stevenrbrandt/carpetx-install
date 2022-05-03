@@ -74,6 +74,8 @@ packages:
       variants: +pic
   gcc:
       version: [11.2.0]
+  openpmd-api:
+      variants: +python
   cuda:
       version: [11.5.0]
 EOF

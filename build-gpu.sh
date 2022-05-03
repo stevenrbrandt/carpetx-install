@@ -1,1 +1,1 @@
-./simfactory/bin/sim build -j10 --optionlist /usr/carpetx-spack/local-gpu.cfg --thornlist /usr/home/jovyan/carpetx.th |& tee make-gpu.out
+./simfactory/bin/sim build -j10 sim-gpu --optionlist /usr/carpetx-spack/local-gpu.cfg --thornlist /home/jovyan/carpetx.th |& tee make-gpu.out
