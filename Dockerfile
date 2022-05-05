@@ -1,9 +1,9 @@
-FROM ubuntu:20.04
+FROM nvidia/cuda:11.5.2-devel-ubuntu20.04
 
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update
-RUN apt-get install -y git python3 build-essential curl vim gfortran subversion \
-    python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg
+RUN apt update -y
+RUN apt-get install -y git curl vim gfortran subversion \
+    python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb
 
 WORKDIR /usr/local
 #ARG GH_TOKEN
@@ -36,6 +36,11 @@ COPY build-gpu.sh /usr/local/bin/
 COPY build-cpu.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/build*.sh
 RUN mkdir -p /usr/local/data
+
+# Special location for openpmd
+RUN perl -p -i -e 's{^OPENPMD_DIR =.*}{OPENPMD_DIR = /usr/local}' /usr/carpetx-spack/*.cfg
+RUN perl -p -i -e 's{^OPENPMD_API_DIR =.*}{OPENPMD_API_DIR = /usr/local}' /usr/carpetx-spack/*.cfg
+RUN perl -p -i -e 's{/usr/carpetx-spack/carpetx/bin/nvcc}{/usr/local/cuda/bin/nvcc}g' /usr/carpetx-spack/*.cfg
 
 USER jovyan
 WORKDIR /home/jovyan

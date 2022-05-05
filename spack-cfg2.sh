@@ -54,7 +54,7 @@ packages:
   adios2:
       variants: +hdf5 ~python
   amrex:
-      variants: +cuda cuda_arch=70 ~fortran +hdf5 +openmp +particles +shared
+      variants: +cuda ~fortran +hdf5 +openmp +particles +shared
   boost:
       variants: cxxstd=17 +context +mpi +system +filesystem
       version: [1.77.0]
@@ -76,8 +76,8 @@ packages:
       version: [11.2.0]
   openpmd-api:
       variants: +python
-  cuda:
-      version: [11.5.0]
+  #cuda:
+  #    version: [11.5.0]
 EOF
 fi
 
@@ -105,7 +105,7 @@ else
 fi
 
 # Make sure we have a few externals
-spack external find perl diffutils findutils
+spack external find perl diffutils findutils cuda
 
 # Make sure we have the exact compiler we want
 if [ $GCC_FOUND != 0 ]
@@ -127,7 +127,7 @@ fi
 which gfortran
 which gcc
 which g++
-for pkg in mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 amrex boost cuda googletest gperftools memkind nsimd openblas openpmd-api rnpletal simulationio ssht yaml-cpp gdb
+for pkg in mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 amrex boost googletest gperftools memkind nsimd openblas rnpletal simulationio ssht yaml-cpp
 do
     if grep $pkg "$ENV_DIR/spack.yaml"
     then
@@ -145,7 +145,7 @@ fi
 spack --env-dir="$ENV_DIR" install --reuse < /dev/null
 set +e
 rm -fr carpetx
-spack view symlink -i carpetx mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 boost cuda googletest gperftools memkind nsimd openblas openpmd-api rnpletal simulationio ssht yaml-cpp gdb 
+spack view symlink -i carpetx mpich hdf5 libjpeg openssl fftw papi gsl hwloc adios2 boost googletest gperftools memkind nsimd openblas rnpletal simulationio ssht yaml-cpp
 echo Create local-gpu.cfg
 cat > template.cfg << EOF
 # Option list for the Einstein Toolkit

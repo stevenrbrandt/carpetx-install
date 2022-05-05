@@ -10,6 +10,5 @@ spack load $p
 done
 mkdir -p build
 cd build
-set -x
 cmake -DopenPMD_USE_MPI=ON -DopenPMD_USE_PYTHON=ON -DopenPMD_USE_ADIOS2=ON ..
 make -j10 install
