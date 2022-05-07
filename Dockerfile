@@ -48,25 +48,16 @@ USER jovyan
 WORKDIR /home/jovyan
 
 ENV USER jovyan
-RUN /usr/carpetx/GetComponents --parallel https://bitbucket.org/eschnett/cactusamrex/raw/59638ede6b0a513c078169cb58420d057b25cbd9/azure-pipelines/carpetx.th
-WORKDIR /home/jovyan/Cactus
 
-# We don't want an ever-changing hostname to interfere
-# with simfactory's build logic
-RUN echo workshop > /home/jovyan/.hostname
+RUN echo hub > /home/jovyan/.hostname
 
-RUN ./simfactory/bin/sim setup-silent
+RUN /usr/carpetx/GetComponents --parallel https://bitbucket.org/eschnett/cactusamrex/raw/59638ede6b0a513c078169cb58420d057b25cbd9/azure-pipelines/carpetx.th && cd /home/jovyan/Cactus && \
+  ./simfactory/bin/sim setup-silent && \
+  perl -p -i -e 's{ET_2020_05}{ET_2020_11}' /home/jovyan/carpetx.th && \
+  perl -p -i -e 's{CarpetX/AHFinder}{#$&}' /home/jovyan/carpetx.th && \
+  perl -p -i -e 's{CactusUtils/Formaline}{#$&}' /home/jovyan/carpetx.th && \
+  bash /usr/local/bin/build-gpu.sh && cd .. && zip -qr Cactus.zip Cactus && rm -fr Cactus
 
-# Use a newer cactus
-RUN perl -p -i -e 's{ET_2020_05}{ET_2020_11}' /home/jovyan/carpetx.th
-
-# This thorn does not build on GPUs at the moment.
-RUN perl -p -i -e 's{CarpetX/AHFinder}{#$&}' /home/jovyan/carpetx.th
-
-# Other stuff that's not needed
-RUN perl -p -i -e 's{CactusUtils/Formaline}{#$&}' /home/jovyan/carpetx.th
-
-RUN bash /usr/local/bin/build-gpu.sh && cd .. && zip -qr Cactus.zip Cactus && rm -fr Cactus
 WORKDIR /home/jovyan
 USER root
 RUN ln -s /home/jovyan/Cactus.zip /usr/local/data/Cactus.zip
