@@ -3,7 +3,9 @@ FROM nvidia/cuda:11.5.2-devel-ubuntu20.04
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt update -y
 RUN apt-get install -y git curl vim gfortran subversion \
-    python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb
+    python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb g++-10 gfortran-10
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
+RUN update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-10 10
 
 WORKDIR /usr/local
 #ARG GH_TOKEN
@@ -64,8 +66,7 @@ RUN perl -p -i -e 's{CarpetX/AHFinder}{#$&}' /home/jovyan/carpetx.th
 # Other stuff that's not needed
 RUN perl -p -i -e 's{CactusUtils/Formaline}{#$&}' /home/jovyan/carpetx.th
 
-RUN bash /usr/local/bin//build-gpu.sh
+RUN bash /usr/local/bin/build-gpu.sh && cd .. && zip -qr Cactus.zip Cactus && rm -fr Cactus
 WORKDIR /home/jovyan
 USER root
-RUN zip -r /usr/local/data/Cactus.zip Cactus
-RUN rm -fr /home/jovyan/Cactus
+RUN ln -s /home/jovyan/Cactus.zip /usr/local/data/Cactus.zip

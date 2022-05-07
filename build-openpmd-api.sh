@@ -1,4 +1,3 @@
-set -e
 source /usr/carpetx-spack/env.sh
 perl -p -i -e 's/locks: true/locks: false/' $SPACK_ROOT/etc/spack/defaults/config.yaml
 cd /usr/local/openPMD-api

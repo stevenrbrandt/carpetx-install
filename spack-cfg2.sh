@@ -1,5 +1,5 @@
 set -e
-export GCC_VER=11.2.0
+export GCC_VER=10.3.0
 
 export HERE="$PWD/cactus-spack"
 export ENV_DIR="${HERE}/env"
@@ -105,7 +105,7 @@ else
 fi
 
 # Make sure we have a few externals
-spack external find perl diffutils findutils cuda
+spack external find perl diffutils findutils cuda fortran
 
 # Make sure we have the exact compiler we want
 if [ $GCC_FOUND != 0 ]
@@ -251,6 +251,10 @@ ZLIB_DIR = {VIEW_DIR}
 EOF
 cp template.cfg local-gpu.cfg
 export GCC_DIR=$(spack find --path gcc|tail -1|awk '{print $2}')
+if [ "$GCC_DIR" = "No" ]
+then
+    export GCC_DIR=$(dirname $(dirname $(which gcc)))
+fi
 export NSIMD_DIR=$(spack find --path nsimd|tail -1|awk '{print $2}')
 export NSIMD_ARCH=$(ls $NSIMD_DIR/lib/libnsimd_*.so | perl -p -e 's/.*libnsimd_//'|perl -p -e 's/\.so//')
 export VIEW_DIR="$PWD/carpetx"
