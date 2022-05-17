@@ -76,8 +76,11 @@ packages:
       version: [11.2.0]
   openpmd-api:
       variants: +python
-  #cuda:
-  #    version: [11.5.0]
+  cuda:
+    buildable: False
+    externals:
+    - spec: cuda@11.5.2
+      prefix: /usr/local/cuda
 EOF
 fi
 
@@ -105,7 +108,7 @@ else
 fi
 
 # Make sure we have a few externals
-spack external find perl diffutils findutils cuda fortran
+spack external find perl diffutils findutils fortran cmake make tar xz
 
 # Make sure we have the exact compiler we want
 if [ $GCC_FOUND != 0 ]
@@ -160,10 +163,10 @@ VERSION = db-gpu-2021-11-17
 CPP = {GCC_DIR}/bin/cpp
 FPP = {GCC_DIR}/bin/cpp
 CC = {GCC_DIR}/bin/gcc
-CXX = {VIEW_DIR}/bin/nvcc --compiler-bindir {GCC_DIR}/bin/g++ -x cu
+CXX = {CUDA_DIR}/bin/nvcc --compiler-bindir {GCC_DIR}/bin/g++ -x cu
 FC = {GCC_DIR}/bin/gfortran
 F90 = {GCC_DIR}/bin/gfortran
-LD = {VIEW_DIR}/bin/nvcc --compiler-bindir {GCC_DIR}/bin/g++
+LD = {CUDA_DIR}/bin/nvcc --compiler-bindir {GCC_DIR}/bin/g++
 
 CPPFLAGS = -DSIMD_CPU
 CFLAGS = -pipe -g -march=native 
@@ -177,7 +180,7 @@ CFLAGS = -pipe -g -march=native
 CXXFLAGS = -pipe -g --compiler-options -march=native -std=c++17 --compiler-options -std=gnu++17 --expt-relaxed-constexpr --extended-lambda --gpu-architecture sm_70 --forward-unknown-to-host-compiler --Werror cross-execution-space-call --Werror ext-lambda-captures-this --relocatable-device-code=true --objdir-as-tempdir
 FPPFLAGS = -traditional
 F90FLAGS = -pipe -g -march=native -fcray-pointer -ffixed-line-length-none
-LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib
+LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib -Wl,-rpath,/usr/local/lib
 LIBS = nvToolsExt
 
 C_LINE_DIRECTIVES = yes
@@ -259,10 +262,12 @@ export NSIMD_DIR=$(spack find --path nsimd|tail -1|awk '{print $2}')
 export NSIMD_ARCH=$(ls $NSIMD_DIR/lib/libnsimd_*.so | perl -p -e 's/.*libnsimd_//'|perl -p -e 's/\.so//')
 export VIEW_DIR="$PWD/carpetx"
 export AMREX_DIR=$(spack find --path amrex+cuda|tail -1|awk '{print $2}')
+export CUDA_DIR=/usr/local/cuda
 perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local-gpu.cfg
 perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local-gpu.cfg
 perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local-gpu.cfg
 perl -p -i -e "s'{AMREX_DIR}'$AMREX_DIR'g" local-gpu.cfg
+perl -p -i -e "s'{CUDA_DIR}'$CUDA_DIR'g" local-gpu.cfg
 
 spack find amrex~cuda
 if [ $? != 0 ]
@@ -300,7 +305,7 @@ CFLAGS = -pipe -g -march=native
 CXXFLAGS = -g -std=c++17 
 FPPFLAGS = -traditional
 F90FLAGS = -pipe -g -march=native -fcray-pointer -ffixed-line-length-none
-LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib
+LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib -Wl,-rpath,/usr/local/lib
 LIBS = 
 
 C_LINE_DIRECTIVES = yes
@@ -378,3 +383,4 @@ perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local-cpu.cfg
 perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local-cpu.cfg
 perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local-cpu.cfg
 perl -p -i -e "s'{AMREX_DIR}'$AMREX_DIR'g" local-cpu.cfg
+spack gc -y

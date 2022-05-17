@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+
+  perimeter-workspace:
+    build:
+        context: .
+        dockerfile: Dockerfile
+    image: stevenrbrandt/perimeter
+    container_name: perimeter
+    entrypoint: sleep infinity
