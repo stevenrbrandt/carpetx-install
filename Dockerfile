@@ -35,6 +35,9 @@ COPY build-gpu.sh /usr/local/bin/
 COPY build-cpu.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/build*.sh
 RUN mkdir -p /usr/local/data
+RUN echo ALL ALL=NOPASSWD: /usr/local/bin/link.sh >> /etc/sudoers
+COPY link.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/link.sh
 
 # Special location for openpmd
 RUN perl -p -i -e 's{^OPENPMD_DIR =.*}{OPENPMD_DIR = /usr/local}' /usr/carpetx-spack/*.cfg
