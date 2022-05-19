@@ -5,10 +5,10 @@ FROM stevenrbrandt/perimeter
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt update -y && \
     apt-get install -y git curl vim gfortran subversion make cmake xz-utils file \
-    python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb g++-10 gfortran-10 && \
+    python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb g++ gfortran && \
     rm -rf /var/lib/apt/lists/*
-RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
-RUN update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-10 10
+#RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
+#RUN update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-10 10
 
 WORKDIR /usr/local
 RUN git clone https://github.com/openPMD/openPMD-api.git
@@ -57,6 +57,7 @@ RUN curl -kLO https://raw.githubusercontent.com/gridaphobe/CRL/master/GetCompone
   ./simfactory/bin/sim setup-silent && \
   perl -p -i -e 's{ET_2020_05}{ET_2020_11}' /home/jovyan/carpetx.th && \
   perl -p -i -e 's{CarpetX/AHFinder}{#$&}' /home/jovyan/carpetx.th && \
+  perl -p -i -e 's{CarpetX/WaveToyGPU}{#$&}' /home/jovyan/carpetx.th && \
   perl -p -i -e 's{CactusUtils/Formaline}{#$&}' /home/jovyan/carpetx.th && \
   bash /usr/local/bin/build-gpu.sh && cd .. && zip -qr Cactus.zip Cactus && rm -fr Cactus
 
@@ -64,3 +65,5 @@ WORKDIR /home/jovyan
 USER root
 RUN ln -s /home/jovyan/Cactus.zip /usr/local/data/Cactus.zip
 RUN pip install --no-cache scrolldown
+ENV PYTHONPATH /usr/local/lib/python3.8/dist-packages:/usr/local/lib/python3.8/site-packages
+ENV LD_LIBRARY_PATH /usr/local/lib:/usr/local/nvidia/lib64

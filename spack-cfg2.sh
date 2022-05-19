@@ -1,5 +1,5 @@
 set -e
-export GCC_VER=10.3.0
+export GCC_VER=9.4.0
 
 export HERE="$PWD/cactus-spack"
 export ENV_DIR="${HERE}/env"
@@ -79,7 +79,7 @@ packages:
   cuda:
     buildable: False
     externals:
-    - spec: cuda@11.5.2
+    - spec: cuda@11.0.3
       prefix: /usr/local/cuda
 EOF
 fi
@@ -177,10 +177,10 @@ CFLAGS = -pipe -g -march=native
 #   Call parameter type does not match function signature!
 #     %tmp = load double, double* %x.addr, align 8, !dbg !1483
 #     float  %1 = call i32 @__isnanf(double %tmp), !dbg !1483
-CXXFLAGS = -pipe -g --compiler-options -march=native -std=c++17 --compiler-options -std=gnu++17 --expt-relaxed-constexpr --extended-lambda --gpu-architecture sm_70 --forward-unknown-to-host-compiler --Werror cross-execution-space-call --Werror ext-lambda-captures-this --relocatable-device-code=true --objdir-as-tempdir
+CXXFLAGS = -pipe -g --compiler-options -march=native -std=c++17 --compiler-options -std=gnu++17 --expt-relaxed-constexpr --extended-lambda --gpu-architecture sm_70 --forward-unknown-to-host-compiler --Werror ext-lambda-captures-this --relocatable-device-code=true --objdir-as-tempdir
 FPPFLAGS = -traditional
 F90FLAGS = -pipe -g -march=native -fcray-pointer -ffixed-line-length-none
-LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib -Wl,-rpath,/usr/local/lib
+LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib -Wl,-rpath,/usr/local/lib -Wl,-rpath,/usr/local/nvidia/lib64
 LIBS = nvToolsExt
 
 C_LINE_DIRECTIVES = yes

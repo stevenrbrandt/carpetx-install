@@ -1,5 +1,6 @@
-# FROM ubuntu:20.04
-FROM nvidia/cuda:11.5.2-devel-ubuntu20.04
+# FROM ubuntu:18.04
+# FROM nvidia/cuda:11.5.2-devel-ubuntu20.04
+FROM nvidia/cuda:11.0.3-devel-ubuntu20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt -yq dist-upgrade && \
