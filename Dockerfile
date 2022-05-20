@@ -67,3 +67,7 @@ RUN ln -s /home/jovyan/Cactus.zip /usr/local/data/Cactus.zip
 RUN pip install --no-cache scrolldown
 ENV PYTHONPATH /usr/local/lib/python3.8/dist-packages:/usr/local/lib/python3.8/site-packages
 ENV LD_LIBRARY_PATH /usr/local/lib:/usr/local/nvidia/lib64
+COPY setup-user.sh /etc/
+RUN chmod +x /etc/setup-user.sh
+RUN echo /etc/setup-user.sh >> /etc/bash.bashrc
+COPY notebooks/*.ipynb /etc/skel
