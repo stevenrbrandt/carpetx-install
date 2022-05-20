@@ -70,4 +70,4 @@ ENV LD_LIBRARY_PATH /usr/local/lib:/usr/local/nvidia/lib64
 COPY setup-user.sh /etc/
 RUN chmod +x /etc/setup-user.sh
 RUN echo /etc/setup-user.sh >> /etc/bash.bashrc
-COPY notebooks/*.ipynb /etc/skel
+COPY notebooks/*.ipynb /etc/skel/
