@@ -1,0 +1,6 @@
+FROM stevenrbrandt/etworkshop
+WORKDIR /usr/local
+USER jovyan
+WORKDIR /home/jovyan
+COPY build-carpetx.sh ./
+RUN bash ./build-carpetx.sh
