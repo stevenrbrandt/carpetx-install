@@ -17,6 +17,9 @@ echo "lab: $JUPYTER_ENABLE_LAB"
 mkdir -p /tmp/$(whoami)/jupyter-runtime
 export JUPYTER_RUNTIME_DIR=/tmp/$(whoami)/jupyter-runtime
 
+# Special setup
+if [ -r /usr/local/bin/setup-user.sh ]; then source /usr/local/bin/setup-user.sh; fi
+
 wrapper=""
 if [[ "${RESTARTABLE}" == "yes" ]]; then
   wrapper="run-one-constantly"
