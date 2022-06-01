@@ -1,7 +1,7 @@
 export USER=jovyan
 curl -kLO https://raw.githubusercontent.com/gridaphobe/CRL/master/GetComponents
 chmod a+x GetComponents
-./GetComponents --parallel https://bitbucket.org/eschnett/cactusamrex/raw/59638ede6b0a513c078169cb58420d057b25cbd9/azure-pipelines/carpetx.th
+./GetComponents --parallel https://bitbucket.org/eschnett/cactusamrex/raw/master/azure-pipelines/carpetx.th
 cd /home/jovyan/Cactus
 ./simfactory/bin/sim setup-silent
 perl -p -i -e 's{ET_2020_05}{ET_2020_11}' /home/jovyan/carpetx.th

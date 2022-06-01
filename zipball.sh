@@ -1,4 +1,4 @@
-docker-compose -f docker-compose2.yml build
+#docker-compose -f docker-compose2.yml build --no-cache
 docker-compose -f docker-compose2.yml down
 docker-compose -f docker-compose2.yml up -d
 sleep 5

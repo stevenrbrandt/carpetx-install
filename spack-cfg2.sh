@@ -14,7 +14,7 @@ echo
 mkdir -p $HERE
 if [ ! -d "$SPACK_ROOT" ]
 then
-  git clone -b v0.17.2 --depth 1 https://github.com/spack/spack.git "$SPACK_ROOT"
+  git clone --depth 1 https://github.com/spack/spack.git "$SPACK_ROOT"
 fi
 source "$SPACK_ROOT/share/spack/setup-env.sh"
 
@@ -54,7 +54,7 @@ packages:
   adios2:
       variants: +hdf5 ~python
   amrex:
-      variants: +cuda ~fortran +hdf5 +openmp +particles +shared
+      variants: +cuda ~fortran ~hdf5 +openmp +particles +shared
   boost:
       variants: cxxstd=17 +context +mpi +system +filesystem
       version: [1.77.0]
@@ -76,6 +76,11 @@ packages:
       version: [11.2.0]
   openpmd-api:
       variants: +python
+  python:
+    buildable: False
+    externals:
+    - spec: python@3.8.10+bz2+ctypes+dbm+ensurepip+lzma+nis+pyexpat+pythoncmd+readline+sqlite3+ssl+tix+tkinter+uuid+zlib
+      prefix: /usr
   cuda:
     buildable: False
     externals:
