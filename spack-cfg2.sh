@@ -14,8 +14,12 @@ echo
 mkdir -p $HERE
 if [ ! -d "$SPACK_ROOT" ]
 then
-  git clone --depth 1 https://github.com/spack/spack.git "$SPACK_ROOT"
+  git clone https://github.com/spack/spack.git "$SPACK_ROOT"
+  pushd "$SPACK_ROOT"
+  git checkout d7fb5a6db47c8f4b84b8faa59aabf331dfcefabe
+  popd
 fi
+perl -p -i -e 's/locks: true/locks: false/'  $SPACK_ROOT/etc/spack/defaults/config.yaml
 source "$SPACK_ROOT/share/spack/setup-env.sh"
 
 if [ ! -r env.sh ]
@@ -277,7 +281,7 @@ perl -p -i -e "s'{CUDA_DIR}'$CUDA_DIR'g" local-gpu.cfg
 spack find amrex~cuda
 if [ $? != 0 ]
 then
-  spack install --reuse amrex ~cuda +hdf5 +openmp +particles +shared
+  spack install --reuse amrex ~cuda ~hdf5 +openmp +particles +shared
 fi
 echo Create local-cpu.cfg
 cat > template2.cfg << EOF
