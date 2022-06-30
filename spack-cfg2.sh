@@ -117,7 +117,7 @@ else
 fi
 
 # Make sure we have a few externals
-spack external find perl diffutils findutils fortran cmake make tar xz
+spack external find perl diffutils findutils fortran cmake tar xz
 
 # Make sure we have the exact compiler we want
 if [ $GCC_FOUND != 0 ]
