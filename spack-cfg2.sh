@@ -1,5 +1,6 @@
 set -e
 export GCC_VER=9.4.0
+export AMREX_VER=22.05
 
 export HERE="$PWD/cactus-spack"
 export SPACK_ROOT="${HERE}/root"
@@ -43,7 +44,7 @@ then
 cat > "$SPACK_USER_CONFIG_PATH/packages.yaml" << EOF
 packages:
   all:
-    compiler: [gcc]
+    require: "%gcc@${GCC_VER}"
     providers:
       mpi:
       - mpich
@@ -58,7 +59,7 @@ packages:
       variants: +hdf5 ~python
   amrex:
       variants: +cuda ~fortran ~hdf5 +openmp +particles +shared
-      version: [22.05]
+      version: [${AMREX_VER}]
   boost:
       variants: cxxstd=17 +context +mpi +system +filesystem
       version: [1.77.0]
@@ -96,13 +97,14 @@ spack config add concretizer:reuse:true
 spack config add concretizer:unify:true
 spack config add "packages:all:variants: +cuda"
 
-spack add mpich libjpeg openssl fftw papi gsl hwloc adios2 amrex+cuda boost googletest gperftools nsimd openblas simulationio ssht yaml-cpp cuda@11.0.3 openpmd-api
+spack add mpich libjpeg openssl fftw papi gsl hwloc adios2 amrex+cuda boost googletest gperftools nsimd openblas simulationio ssht yaml-cpp openpmd-api cuda@11.0.3
 
 # spack spec zlib
 # spack buildcache list
 
 spack concretize -f
-spack install --fail-fast
+spack develop -p /usr/amrex+cuda amrex@${AMREX_VER}
+spack install --fail-fast --keep-stage
 
 if [ ! -d $SPACK_ROOT/var/spack/environments/cpu ]
 then
@@ -120,7 +122,20 @@ spack add mpich libjpeg openssl fftw papi gsl hwloc adios2 amrex~cuda boost goog
 # spack buildcache list
 
 spack concretize -f
-spack install --fail-fast
+spack develop -p /usr/amrex~cuda amrex@${AMREX_VER}
+spack install --fail-fast 
+
+export GCC_DIR="$(spack location -i gcc 2>/dev/null)"
+if [ "$GCC_DIR" = "" ]
+then
+    export GCC_DIR=$(dirname $(dirname $(which gcc)))
+fi
+
+export CUDA_DIR="$(spack location -i cuda 2>/dev/null)"
+if [ "$CUDA_DIR" = "" ]
+then
+    export CUDA_DIR=$(dirname $(dirname $(which nvcc)))
+fi
 
 cat > template.cfg << EOF
 # Option list for the Einstein Toolkit
@@ -225,15 +240,9 @@ YAML_CPP_DIR = {VIEW_DIR}
 ZLIB_DIR = {VIEW_DIR}
 EOF
 cp template.cfg local-gpu.cfg
-export GCC_DIR=$(spack location -i gcc)
-if [ "$?" != "0" ]
-then
-    export GCC_DIR=$(dirname $(dirname $(which gcc)))
-fi
 export NSIMD_DIR=$(spack location -i nsimd)
 export NSIMD_ARCH=$(ls $NSIMD_DIR/lib/libnsimd_*.so | perl -p -e 's/.*libnsimd_//'|perl -p -e 's/\.so//')
 export VIEW_DIR="$HERE/root/var/spack/environments/gpu/.spack-env/view"
-export CUDA_DIR=$VIEW_DIR
 perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local-gpu.cfg
 perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local-gpu.cfg
 perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local-gpu.cfg

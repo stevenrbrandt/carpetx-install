@@ -1,20 +1,22 @@
 #FROM nvidia/cuda:11.5.2-devel-ubuntu20.04
-FROM ubuntu:20.04
+FROM nvidia/cuda:11.0.3-base-ubuntu20.04
+#FROM ubuntu:20.04
 #FROM stevenrbrandt/perimeter
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt update -y && \
-    apt-get install -y git curl vim gfortran subversion make cmake xz-utils file emacs \
-    python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb g++ gfortran && \
+    apt-get install -y git curl vim gfortran subversion make cmake xz-utils file emacs locales locales-all \
+    python3-pip python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb g++ gfortran && \
     rm -rf /var/lib/apt/lists/*
 
+#RUN pip3 install nvidia-nsys
 
 #RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
 #RUN update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-10 10
 
-WORKDIR /usr/local
-RUN git clone https://github.com/openPMD/openPMD-api.git
-WORKDIR /usr/local/openPMD-api
+#WORKDIR /usr/local
+#RUN git clone https://github.com/openPMD/openPMD-api.git
+#WORKDIR /usr/local/openPMD-api
 
 COPY spack-cfg2.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/spack-cfg2.sh
@@ -74,8 +76,8 @@ RUN bash /usr/local/bin/spack-cfg2.sh
 # COPY bash_profile /etc/skel/.bash_profile
 # RUN chmod +x /usr/local/bin/setup-user.sh
 # COPY singleuser/start-notebook.sh /usr/local/bin/
-RUN apt update -y && \
-    apt install -yq --no-install-recommends locales locales-all && \
-    rm -rf /var/lib/apt/lists/*
+#RUN apt update -y && \
+#    apt install -yq --no-install-recommends locales locales-all && \
+#    rm -rf /var/lib/apt/lists/*
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
 ENV CCTK_HOSTNAME etworkshop
