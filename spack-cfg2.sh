@@ -1,6 +1,9 @@
+#!/bin/bash
 set -e
 export GCC_VER=9.4.0
-export AMREX_VER=22.05
+export AMREX_VER=23.02
+export CUDA_VER=11.0.3
+export SPACK_SKIP_MODULES=1
 
 export HERE="$PWD/cactus-spack"
 export SPACK_ROOT="${HERE}/root"
@@ -16,13 +19,11 @@ mkdir -p $HERE
 if [ ! -d "$SPACK_ROOT" ]
 then
   git clone https://github.com/spack/spack.git "$SPACK_ROOT"
-  #pushd "$SPACK_ROOT"
-  #git checkout d7fb5a6db47c8f4b84b8faa59aabf331dfcefabe
-  #popd
+  source "$SPACK_ROOT/share/spack/setup-env.sh"
+  spack compiler find
+else
+  source "$SPACK_ROOT/share/spack/setup-env.sh"
 fi
-#perl -p -i -e 's/locks: true/locks: false/'  $SPACK_ROOT/etc/spack/defaults/config.yaml
-source "$SPACK_ROOT/share/spack/setup-env.sh"
-#spack config --scope site add config:locks:true
 
 if [ ! -r env.sh ]
 then
@@ -30,8 +31,22 @@ cat > env.sh << EOF
 export HERE="$PWD/cactus-spack"
 export SPACK_ROOT="${HERE}/root"
 export SPACK_USER_CONFIG_PATH="${HERE}/.spack"
+export SPACK_SKIP_MODULES=1
 
 echo "SPACK_USER_CONFIG_PATH=${SPACK_USER_CONFIG_PATH}"
+echo "SPACK_ROOT=${SPACK_ROOT}"
+echo
+source "$SPACK_ROOT/share/spack/setup-env.sh"
+EOF
+fi
+
+if [ ! -r env2.sh ]
+then
+cat > env2.sh << EOF
+  export HERE="$PWD/cactus-spack"
+export SPACK_ROOT="${HERE}/root"
+export SPACK_SKIP_MODULES=1
+
 echo "SPACK_ROOT=${SPACK_ROOT}"
 echo
 source "$SPACK_ROOT/share/spack/setup-env.sh"
@@ -49,6 +64,8 @@ packages:
       mpi:
       - mpich
       - openmpi
+  nsimd:
+      version: [3.0.1]
   yaml-cpp:
       version: [0.6.3]
   hdf5:
@@ -57,36 +74,40 @@ packages:
       variants: +mpi +openmp
   adios2:
       variants: +hdf5 ~python
-  amrex:
-      variants: +cuda ~fortran ~hdf5 +openmp +particles +shared
-      version: [${AMREX_VER}]
   boost:
       variants: cxxstd=17 +context +mpi +system +filesystem
       version: [1.77.0]
   hpctoolkit:
-      variants: +cuda +mpi
+      variants: +mpi
   memkind:
       version: [1.10.1]
+  gsl:
+      version: [2.7]
   petsc:
-      variants: +cuda +fftw +hwloc +openmp
+      variants: +fftw +hwloc +openmp ~cuda
+  hypre:
+      variants: ~cuda
   reprimand:
       version: [1.3]
   silo:
       version: [4.10.2-bsd]
-  simulationio:
-      variants: +asdf +hdf5 ~python +rnpl +silo
   xz:
       variants: +pic
-  gcc:
-      version: [${GCC_VER}]
   openpmd-api:
-      variants: +python
+      variants: +python -hdf5
+  cuda:
+      version: [$CUDA_VER]
+  amrex:
+      variants: +shared +particles build_type=RelWithDebInfo
+  mpich:
+      variants: +fortran 
 EOF
 fi
 
 # Make sure we have a few externals
-spack external find --not-buildable perl diffutils findutils fortran tar xz pkgconf zlib python cuda
+spack external find --not-buildable perl diffutils findutils fortran tar xz pkgconf zlib python cuda 
 
+## GPU Environment
 if [ ! -d $SPACK_ROOT/var/spack/environments/gpu ]
 then
     spack env create gpu
@@ -94,10 +115,11 @@ fi
 spack env activate gpu
 
 spack config add concretizer:reuse:true
-spack config add concretizer:unify:true
+spack config add concretizer:unify:when_possible
 spack config add "packages:all:variants: +cuda"
 
-spack add mpich libjpeg openssl fftw papi gsl hwloc adios2 amrex+cuda boost googletest gperftools nsimd openblas simulationio ssht yaml-cpp openpmd-api cuda@11.0.3
+spack add netlib-lapack silo mpich libjpeg openssl fftw papi gsl hwloc adios2 boost googletest gperftools nsimd openblas ssht yaml-cpp openpmd-api lorene cuda amrex @${AMREX_VER} 
+spack develop -p /usr/amrex+cuda amrex @${AMREX_VER} +cuda
 
 # spack spec zlib
 # spack buildcache list
@@ -105,7 +127,9 @@ spack add mpich libjpeg openssl fftw papi gsl hwloc adios2 amrex+cuda boost goog
 spack concretize -f
 spack develop -p /usr/amrex+cuda amrex@${AMREX_VER}
 spack install --fail-fast --keep-stage
+spack env deactivate
 
+## CPU Environment
 if [ ! -d $SPACK_ROOT/var/spack/environments/cpu ]
 then
     spack env create cpu
@@ -113,17 +137,30 @@ fi
 spack env activate cpu
 
 spack config add concretizer:reuse:true
-spack config add concretizer:unify:true
-# spack config add "packages:all:variants: ~cuda"
+spack config add concretizer:unify:when_possible
+spack config add "packages:all:variants: ~cuda"
 
-spack add mpich libjpeg openssl fftw papi gsl hwloc adios2 amrex~cuda boost googletest gperftools nsimd openblas simulationio ssht yaml-cpp openpmd-api
+spack add netlib-lapack silo mpich libjpeg openssl fftw papi gsl hwloc adios2 boost googletest gperftools nsimd openblas ssht yaml-cpp openpmd-api lorene amrex @${AMREX_VER} ~cuda
+spack develop -p /usr/amrex~cuda amrex @${AMREX_VER} ~cuda
 
-# spack spec zlib
-# spack buildcache list
+spack install --fail-fast
+spack env deactivate
 
-spack concretize -f
-spack develop -p /usr/amrex~cuda amrex@${AMREX_VER}
-spack install --fail-fast 
+## CPU Environment without AMReX
+if [ ! -d $SPACK_ROOT/var/spack/environments/noamrex ]
+then
+    spack env create noamrex
+fi
+spack env activate noamrex
+
+spack config add concretizer:reuse:true
+spack config add concretizer:unify:when_possible
+spack config add "packages:all:variants: ~cuda"
+
+spack add netlib-lapack silo mpich libjpeg openssl fftw papi gsl hwloc adios2 boost googletest gperftools nsimd openblas ssht yaml-cpp openpmd-api lorene
+
+spack install --fail-fast
+spack env deactivate
 
 export GCC_DIR="$(spack location -i gcc 2>/dev/null)"
 if [ "$GCC_DIR" = "" ]
@@ -145,7 +182,7 @@ cat > template.cfg << EOF
 
 # Whenever this version string changes, the application is configured
 # and rebuilt from scratch
-VERSION = db-gpu-2021-11-17
+VERSION = db-2023-01-18
 
 CPP = {GCC_DIR}/bin/cpp
 FPP = {GCC_DIR}/bin/cpp
@@ -156,7 +193,7 @@ F90 = {GCC_DIR}/bin/gfortran
 LD = {CUDA_DIR}/bin/nvcc --compiler-bindir {GCC_DIR}/bin/g++
 
 CPPFLAGS = -DSIMD_CPU
-CFLAGS = -pipe -g -march=native 
+CFLAGS = -pipe -g -march=native
 # - We use "--relocatable-device-code=true" to allow building with
 #   debug versions of AMReX
 #   <https://github.com/AMReX-Codes/amrex/issues/1829>
@@ -198,6 +235,7 @@ DISABLE_REAL16 = yes
 VECTORISE = no
 
 ADIOS2_DIR = {VIEW_DIR}
+ADIOS2_LIBS = adios2_fortran_mpi adios2_cxx11_mpi adios2_core_mpi adios2_fortran adios2_cxx11 adios2_c adios2_core
 AMREX_DIR = {VIEW_DIR}
 ASDF_CXX_DIR = {VIEW_DIR}
 BOOST_DIR = {VIEW_DIR}
@@ -227,14 +265,13 @@ OPENBLAS_DIR = {VIEW_DIR}
 OPENPMD_API_DIR = {VIEW_DIR}
 OPENPMD_DIR = {VIEW_DIR}
 OPENSSL_DIR = {VIEW_DIR}
-#PETSC_DIR = {VIEW_DIR}
-#PETSC_ARCH_LIBS = m
+PETSC_DIR = {VIEW_DIR}
+PETSC_ARCH_LIBS = m
 PTHREADS_DIR = NO_BUILD
 #REPRIMAND_DIR = {VIEW_DIR}
 #REPRIMAND_LIBS = RePrimAnd
 RNPLETAL_DIR = {VIEW_DIR}
 SILO_DIR = {VIEW_DIR}
-SIMULATIONIO_DIR = {VIEW_DIR}
 SSHT_DIR = {VIEW_DIR}
 YAML_CPP_DIR = {VIEW_DIR}
 ZLIB_DIR = {VIEW_DIR}
@@ -257,7 +294,7 @@ cat > template2.cfg << EOF
 
 # Whenever this version string changes, the application is configured
 # and rebuilt from scratch
-VERSION = db-gpu-2021-11-17
+VERSION = db-gpu-2023-01-18
 
 CPP = {GCC_DIR}/bin/cpp
 FPP = {GCC_DIR}/bin/cpp
@@ -268,7 +305,7 @@ F90 = {GCC_DIR}/bin/gfortran
 LD = {GCC_DIR}/bin/g++
 
 CPPFLAGS = -DSIMD_CPU
-CFLAGS = -pipe -g -march=native 
+CFLAGS = -pipe -g -march=native
 # - We use "--relocatable-device-code=true" to allow building with
 #   debug versions of AMReX
 #   <https://github.com/AMReX-Codes/amrex/issues/1829>
@@ -276,11 +313,11 @@ CFLAGS = -pipe -g -march=native
 #   Call parameter type does not match function signature!
 #     %tmp = load double, double* %x.addr, align 8, !dbg !1483
 #     float  %1 = call i32 @__isnanf(double %tmp), !dbg !1483
-CXXFLAGS = -g -std=c++17 
+CXXFLAGS = -g -std=c++17
 FPPFLAGS = -traditional
 F90FLAGS = -pipe -g -march=native -fcray-pointer -ffixed-line-length-none
 LDFLAGS = -Wl,-rpath,{VIEW_DIR}/targets/x86_64-linux/lib -Wl,-rpath,/usr/local/lib
-LIBS = 
+LIBS =
 
 C_LINE_DIRECTIVES = yes
 F_LINE_DIRECTIVES = yes
@@ -310,6 +347,7 @@ DISABLE_REAL16 = yes
 VECTORISE = no
 
 ADIOS2_DIR = {VIEW_DIR}
+ADIOS2_LIBS = adios2_fortran_mpi adios2_cxx11_mpi adios2_core_mpi adios2_fortran adios2_cxx11 adios2_c adios2_core
 AMREX_DIR = {VIEW_DIR}
 ASDF_CXX_DIR = {VIEW_DIR}
 BOOST_DIR = {VIEW_DIR}
@@ -339,20 +377,27 @@ OPENBLAS_DIR = {VIEW_DIR}
 OPENPMD_API_DIR = {VIEW_DIR}
 OPENPMD_DIR = {VIEW_DIR}
 OPENSSL_DIR = {VIEW_DIR}
-#PETSC_DIR = {VIEW_DIR}
-#PETSC_ARCH_LIBS = m
+PETSC_DIR = {VIEW_DIR}
+PETSC_ARCH_LIBS = m
 PTHREADS_DIR = NO_BUILD
 #REPRIMAND_DIR = {VIEW_DIR}
 #REPRIMAND_LIBS = RePrimAnd
 RNPLETAL_DIR = {VIEW_DIR}
 SILO_DIR = {VIEW_DIR}
-SIMULATIONIO_DIR = {VIEW_DIR}
 SSHT_DIR = {VIEW_DIR}
 YAML_CPP_DIR = {VIEW_DIR}
 ZLIB_DIR = {VIEW_DIR}
 EOF
+
 cp template2.cfg local-cpu.cfg
 export VIEW_DIR="$HERE/root/var/spack/environments/cpu/.spack-env/view"
 perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local-cpu.cfg
 perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local-cpu.cfg
 perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local-cpu.cfg
+
+cat template2.cfg |grep -v AMREX_DIR > local-noamrex.cfg
+export VIEW_DIR="$HERE/root/var/spack/environments/noamrex/.spack-env/view"
+perl -p -i -e "s'{NSIMD_ARCH}'$NSIMD_ARCH'g" local-cpu.cfg
+perl -p -i -e "s'{GCC_DIR}'$GCC_DIR'g" local-cpu.cfg
+perl -p -i -e "s'{VIEW_DIR}'$VIEW_DIR'g" local-cpu.cfg
+#spack module tcl refresh -y
