@@ -5,15 +5,15 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt update -y && \
-    apt-get install -y git curl vim gfortran subversion make cmake xz-utils file emacs locales locales-all \
-    python3-pip python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb g++ cvs && \
+    apt-get install -y git curl vim gfortran-10 subversion make cmake xz-utils file emacs locales locales-all \
+    python3-pip python3-dev zip python3-sympy python3-numpy python3-matplotlib ffmpeg gdb g++-10 cvs && \
     rm -rf /var/lib/apt/lists/*
 # nvidia-cuda-devel
 
 #RUN pip3 install nvidia-nsys
 
-#RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
-#RUN update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-10 10
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
+RUN update-alternatives --install /usr/bin/gfortran gfortran /usr/bin/gfortran-10 10
 
 ENV PATH /usr/local/coda/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 

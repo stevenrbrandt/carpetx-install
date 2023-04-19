@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-export GCC_VER=9.4.0
+export GCC_VER=10.3.0
 export AMREX_VER=23.02
 export CUDA_VER=11.0.3
 export SPACK_SKIP_MODULES=1
