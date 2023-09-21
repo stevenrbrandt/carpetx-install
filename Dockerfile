@@ -21,6 +21,7 @@ ENV PATH /usr/local/coda/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 #RUN git clone https://github.com/openPMD/openPMD-api.git
 #WORKDIR /usr/local/openPMD-api
 
+COPY hdf5-package.py /usr/local/
 COPY spack-cfg2.sh /usr/local/bin/
 RUN chmod 755 /usr/local/bin/spack-cfg2.sh
 WORKDIR /usr/carpetx-spack

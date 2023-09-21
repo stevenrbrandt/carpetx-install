@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 export GCC_VER=10.3.0
-export AMREX_VER=23.02
+export AMREX_VER=23.07
 export CUDA_VER=11.0.3
 export SPACK_SKIP_MODULES=1
 
@@ -18,12 +18,14 @@ echo
 mkdir -p $HERE
 if [ ! -d "$SPACK_ROOT" ]
 then
-  git clone https://github.com/spack/spack.git "$SPACK_ROOT"
+  #git clone https://github.com/spack/spack.git "$SPACK_ROOT"
+  git clone -b add-headers-to-lorene-install https://github.com/stevenrbrandt/spack.git "$SPACK_ROOT"
   source "$SPACK_ROOT/share/spack/setup-env.sh"
   spack compiler find
 else
   source "$SPACK_ROOT/share/spack/setup-env.sh"
 fi
+cp /usr/local/hdf5-package.py ${SPACK_ROOT}/var/spack/repos/builtin/packages/hdf5/package.py
 
 if [ ! -r env.sh ]
 then
@@ -98,11 +100,12 @@ packages:
   cuda:
       version: [$CUDA_VER]
   amrex:
-      variants: +shared +particles build_type=RelWithDebInfo
+      variants: +shared +particles build_type=RelWithDebInfo +openmp
   mpich:
       variants: +fortran 
 EOF
 fi
+spack config update packages -y
 
 # Make sure we have a few externals
 spack external find --not-buildable perl diffutils findutils fortran tar xz pkgconf zlib python cuda 
