@@ -7,11 +7,12 @@ then
     export GCC_DIR=$(dirname $(dirname $(which gcc)))
 fi
 
-export CUDA_DIR="$(spack location -i cuda 2>/dev/null)"
-if [ "$CUDA_DIR" = "" ]
-then
-    export CUDA_DIR=$(dirname $(dirname $(which nvcc)))
-fi
+#export CUDA_DIR="$(spack location -i cuda 2>/dev/null)"
+#if [ "$CUDA_DIR" = "" ]
+#then
+    #export CUDA_DIR=$(dirname $(dirname $(which nvcc)))
+#fi
+export CUDA_DIR="/usr/cactus/cuda"
 
 cat > template.cfg << EOF
 # Option list for the Einstein Toolkit
@@ -100,6 +101,8 @@ LAPACK_LIBS = lapack
 HWLOC_DIR = ${VIEW_DIR}
 JEMALLOC_DIR = ${VIEW_DIR}
 LORENE_DIR = ${VIEW_DIR}
+LORENE_INC_DIRS = ${VIEW_DIR}/include
+LORENE_LIB_DIRS = ${VIEW_DIR}/lib
 MPI_DIR = ${VIEW_DIR}
 MPI_INC_DIRS = ${VIEW_DIR}/include
 MPI_LIB_DIRS = ${VIEW_DIR}/lib
