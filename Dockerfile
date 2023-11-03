@@ -1,12 +1,14 @@
 # Install dependencies for the latest Einstein Toolkit, as well as thorns
 # that are under development. This image works for cuda as well as generic
 # cpu installations. This image is available on dockerhub as stevenrbrandt/etworkshop.
+#
 # Use it, or this file, at your peril. :)
 FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
 # Basic packages needed. We chose a slightly newer version of gcc than is available by default.
+# cvs is only needed by the LORENE package (installed by spack below).
 RUN apt update -y && \
     apt-get install -y git curl vim gfortran-10 subversion make cmake xz-utils file \
     emacs locales locales-all nvidia-driver-535 \
@@ -112,6 +114,6 @@ RUN spack -e $SPACK_ENV_NAME config add concretizer:unify:true
 RUN spack -e $SPACK_ENV_NAME add hpctoolkit+cuda
 RUN spack -e $SPACK_ENV_NAME install --fail-fast
 
-# Might need this setting. Otherwise the spack in
-# this image might conflict with the locally installed spack.
+# Without this setting the spack in this image might
+# conflict with the locally installed spack.
 ENV SPACK_SYSTEM_CONFIG_PATH=/usr/cactus/.spack
